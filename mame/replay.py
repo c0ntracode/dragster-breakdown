@@ -10,7 +10,7 @@ MAME through mame/dr.lua, (4) optionally record video + audio and encode an MP4.
     python mame/replay.py --rom Dragster.bin --snapshot media/final.png
 
 --reset-at N picks the start phase (N mod 16). 64 gives phase 0, the best one.
-Requires: mame (with the a2600 driver), and ffmpeg for --video.
+Requires: mame (with the a2600 / a2600p driver), and ffmpeg for --video.
 """
 import argparse
 import os
@@ -28,8 +28,8 @@ from dragster.search import search  # noqa: E402
 ENV = dict(os.environ, SDL_VIDEODRIVER="dummy", SDL_AUDIODRIVER="dummy")
 
 
-def run_mame(rom, extra, env_vars, timeout=180):
-    cmd = ["mame", "a2600", "-cart", rom, "-nothrottle", "-autoboot_script",
+def run_mame(rom, extra, env_vars, timeout=180, driver="a2600"):
+    cmd = ["mame", driver, "-cart", rom, "-nothrottle", "-autoboot_script",
            os.path.join(HERE, "dr.lua")] + extra
     out = subprocess.run(cmd, env=dict(ENV, **env_vars), capture_output=True, text=True, timeout=timeout)
     return out.stdout
@@ -38,6 +38,8 @@ def run_mame(rom, extra, env_vars, timeout=180):
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--rom", required=True)
+    ap.add_argument("--driver", default="a2600", choices=["a2600", "a2600p"],
+                    help="MAME driver: a2600 (NTSC, default) or a2600p (PAL ROM)")
     ap.add_argument("--reset-at", type=int, default=64)
     ap.add_argument("--video", help="write an MP4 (needs ffmpeg)")
     ap.add_argument("--snapshot", help="write a PNG of the final screen")
@@ -47,7 +49,7 @@ def main():
         raise SystemExit("mame not found in PATH")
 
     probe = run_mame(rom, ["-video", "none", "-sound", "none", "-seconds_to_run", "60"],
-                     {"DR_MODE": "probe", "DR_RESET_AT": str(args.reset_at)})
+                     {"DR_MODE": "probe", "DR_RESET_AT": str(args.reset_at)}, driver=args.driver)
     m = re.search(r"PROBE cnt0=(\d+) fr0=(\d+) \(phase (\d+)\)", probe)
     if not m:
         raise SystemExit("probe failed:\n" + probe)
@@ -76,7 +78,7 @@ def main():
             env["DR_TAIL"] = "180"
             extra = ["-video", "soft", "-sound", "sdl", "-skip_gameinfo", "-seconds_to_run", "40",
                      "-aviwrite", avi, "-wavwrite", wav]
-        out = run_mame(rom, extra, env)
+        out = run_mame(rom, extra, env, driver=args.driver)
         fin = re.search(r"FINISHED step=(\d+) time_regs=(\w+) pos=(\w+) flag=(\w+) blown=(\w+)", out)
         if not fin:
             raise SystemExit("run did not finish:\n" + out[-500:])

@@ -76,6 +76,23 @@ Margins (distance units; 24 832 = finish) after N timed steps, for each phase:
 
 Regenerate with `python -m dragster.margin`.
 
+## Other releases
+
+This project checked two dumps (hashes in the README). The PAL ROM differs from the NTSC ROM in 586 of 2048 bytes, but the
+differences sit in the display kernel (`$F027`-`$F220`), one timer constant at `$F2C1`, four bytes at `$F6CC`, and a
+one-byte shift of the logic block (`$F226`-`$F28F`) from an extra store at its start. Disassembling both sides shows
+the same instructions in that block after the shift. The physics, timer, and legality code match the NTSC ROM.
+
+| Check | NTSC | PAL |
+|---|---|---|
+| `difftest`, model vs ROM | 0 mismatches | 0 mismatches |
+| `optcheck`, optimal moves on the ROM | 16/16 starts agree | 16/16 starts agree |
+| MAME replay | 5.57 (`a2600`) | 5.57 (`a2600p`) |
+
+The clock adds 0.0334 s per player step on both. The PAL display runs at 50 Hz, so a PAL step takes longer in
+wall-clock time, but the on-screen time counts steps and reads 5.57 for the same 167. A legal run therefore
+needs at least 167 steps on PAL, and 5.51 is out of reach there too.
+
 ## Not modeled
 
 - Odd game numbers (`$80 & 1`) add a tilt mechanic (stick up/down, `$AB`/`$CA`) that, from reading the code, only halves RPM gain.

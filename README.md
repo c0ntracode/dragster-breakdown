@@ -48,12 +48,16 @@ search produces the same margin. See [Credits](#credits-and-prior-work).
 
 ## Reproduce
 
-You need your own dump of the ROM. It is copyrighted and **not included**. The dump used here has:
+You need your own dump of the ROM. It is copyrighted and **not included**. The checks cover two dumps,
+both 2048 bytes:
 
-```
-size   2048 bytes
-SHA-1  944c52de85464070a946813b050518977750e939
-```
+| Release | SHA-1 | MD5 |
+|---|---|---|
+| NTSC | `944c52de85464070a946813b050518977750e939` | `77057d9d14b99e465ea9e29783af0ae3` |
+| PAL | `2fdad16a60cd3a49d3bdfb301b3590f2aaa71da3` | `0c54811cf3b1f1573c9164d5f19eca65` |
+
+The MD5 values match the [TASVideos](https://tasvideos.org/Games/1910) entry (NTSC) and
+[Stella's database](https://github.com/stella-emu/stella/blob/master/src/emucore/DefProps.hxx) (PAL).
 
 ```sh
 python -m venv .venv && . .venv/bin/activate
@@ -61,11 +65,12 @@ pip install -r requirements.txt
 
 export DRAGSTER_ROM=/path/to/Dragster.bin      # or pass --rom
 python -m dragster.difftest --trials 60        # model vs ROM, expect 0 mismatches
+python -m dragster.optcheck                    # optimal moves on the real ROM, all 16 starts
 python -m dragster.search                      # all 16 start configurations
 python -m dragster.margin                      # distance margins per start phase
 ```
 
-MAME replay (needs `mame` with the `a2600` driver, and `ffmpeg` for video):
+MAME replay (needs `mame` with the `a2600` driver, and `ffmpeg` for video). Add `--driver a2600p` for the PAL ROM:
 
 ```sh
 python mame/replay.py --rom "$DRAGSTER_ROM"
@@ -83,8 +88,9 @@ MAME runs headless (`SDL_VIDEODRIVER=dummy`), so no window opens.
 - The model covers the 1-player rules. Odd game numbers add a tilt mechanic that appears to slow the car,
   and the model omits it. Player 1's lane is argued symmetric and untested.
 - Several move lists are optimal, and the search reports one.
-- The checks used one ROM dump and MAME 0.289. The BizHawk TAS cited above corroborates the result from a
-  separate emulator.
+- The checks cover the NTSC and PAL dumps and MAME 0.289. Both dumps give 5.57 with the same physics. Only a
+  third release with different code could change the result, and none appeared in the sources checked. The
+  BizHawk TAS cited above corroborates the result from a separate emulator.
 
 ## Credits and prior work
 

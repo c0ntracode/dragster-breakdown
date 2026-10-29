@@ -19,7 +19,10 @@ import sys
 
 from py65.devices.mpu6502 import MPU
 
-EXPECTED_SHA1 = "944c52de85464070a946813b050518977750e939"
+KNOWN_ROMS = {
+    "944c52de85464070a946813b050518977750e939": "NTSC",
+    "2fdad16a60cd3a49d3bdfb301b3590f2aaa71da3": "PAL",
+}
 FRAME_START = 0xF016
 RESET_VECTOR = 0xF000
 
@@ -35,8 +38,8 @@ TIME_HI, TIME_MID, TIME_LO = 0xB3, 0xB5, 0xB7  # BCD, 0.0334 s added per player-
 def load_rom(path=None):
     """Load the 2 KB ROM. Looks at `path`, $DRAGSTER_ROM, then ./Dragster.bin.
 
-    The ROM is copyrighted and is not distributed with this project. A SHA-1
-    mismatch only prints a warning: the model was validated against the dump above.
+    The ROM is copyrighted and is not distributed with this project. A SHA-1 outside
+    KNOWN_ROMS only prints a warning: the model was validated against those two dumps.
     """
     path = path or os.environ.get("DRAGSTER_ROM") or "Dragster.bin"
     with open(path, "rb") as f:
@@ -44,9 +47,9 @@ def load_rom(path=None):
     if len(rom) != 2048:
         raise SystemExit(f"{path}: expected a 2048-byte ROM, got {len(rom)} bytes")
     sha1 = hashlib.sha1(rom).hexdigest()
-    if sha1 != EXPECTED_SHA1:
-        print(f"warning: ROM SHA-1 is {sha1}, expected {EXPECTED_SHA1}; "
-              "results may not apply to this dump", file=sys.stderr)
+    if sha1 not in KNOWN_ROMS:
+        print(f"warning: ROM SHA-1 {sha1} is not a validated dump ({', '.join(KNOWN_ROMS.values())}); "
+              "results may not apply to it", file=sys.stderr)
     return rom
 
 
