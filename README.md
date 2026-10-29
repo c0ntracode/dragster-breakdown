@@ -5,9 +5,11 @@ searching every possible input sequence against the game's own code.
 
 **Answer: 5.57 seconds.** A 5.51 (the long-disputed 1982 record) or even a 5.54 cannot be reached.
 
-![MAME showing 5.57 in gear 4](media/final_screen_5.57.png)
+![The optimal run in MAME, finishing at 5.57](media/dragster_5.57_run.gif)
 
-▶ [`media/dragster_5.57_run.mp4`](media/dragster_5.57_run.mp4): the optimal run, recorded from MAME (headless) with the inputs injected by script.
+The optimal run, recorded from MAME (headless) with the inputs injected by script. The bottom lane is an idle
+second car whose clock keeps running. The full recording, with sound, is
+[`media/dragster_5.57_run.mp4`](media/dragster_5.57_run.mp4).
 
 ## Result
 
