@@ -1,0 +1,10 @@
+# The ROM is copyrighted (Activision) and is never committed. See README for how to supply your own dump.
+*.bin
+*.a26
+*.rom
+*.zip
+.venv/
+venv/
+__pycache__/
+*.pyc
+moves*.txt
