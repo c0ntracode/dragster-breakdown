@@ -1,9 +1,9 @@
 # dragster-breakdown
 
-**What is the fastest legal time in Atari 2600 *Dragster*?** This project answers that by
-searching every possible input sequence against the game's own code.
+This project finds the fastest legal time in Atari 2600 *Dragster* by searching every possible input sequence
+against the game's own code.
 
-**Answer: 5.57 seconds.** A 5.51 (the long-disputed 1982 record) or even a 5.54 cannot be reached.
+The fastest legal time is **5.57 seconds**. The game's code makes 5.51, the long-disputed 1982 record, and 5.54 unreachable.
 
 ![The optimal run in MAME, finishing at 5.57](media/dragster_5.57_run.gif)
 
@@ -19,36 +19,36 @@ second car whose clock keeps running. The full recording, with sound, is
 | 166 | 5.54 | −155 |
 | **167** | **5.57** | **+98** |
 
-\* Distance units are 1/256 of a position step; the finish line is position `$61` (24 832 units).
-Margins are for the best start phase (see below). Even a perfect driver reaches 5.51 about
+\* Distance units are 1/256 of a position step, and the finish line is position `$61` (24 832 units).
+Margins are for the best start phase (see below). In 165 steps a perfect driver ends about
 1.6 position steps short of the line.
 
-The clock adds 0.0334 s per player step, so the three times above are exactly 165, 166 and 167
-steps. The best case is 167 steps. Some start phases (set by *when* Reset is pressed) need 168 (5.61).
+The clock adds 0.0334 s per player step, so 5.51, 5.54 and 5.57 correspond to 165, 166 and 167 steps.
+The best case is 167 steps. Some start phases (set by *when* Reset is pressed) need 168 (5.61).
 
-This agrees with the independent analysis by Omnigamer (Eric Koziel), whose BizHawk TAS reports
-5.57 with **98** spare units. This project's search produces exactly that margin. See
-[Credits](#credits-and-prior-work).
+Omnigamer (Eric Koziel) published a BizHawk TAS that reaches 5.57 with **98** spare units, and this project's
+search produces the same margin. See [Credits](#credits-and-prior-work).
 
 ## How it works
 
-1. **Read the game.** The ROM's logic is small: each frame services one player (`X = $81 & 1`);
+1. **Read the game.** The ROM's logic is small. Each frame services one player (`X = $81 & 1`), and
    RPM, speed and position follow a few rules (see [docs/FINDINGS.md](docs/FINDINGS.md)).
 2. **Check legality.** Shifting before the countdown ends, or blowing the engine, makes the game draw
-   `EARLY` / `BLOWN` in place of the time. No time can be read, so those runs are excluded.
-   (A greedy "rolling start" appears to finish in 4.27 s but displays `EARLY`.)
+   `EARLY` / `BLOWN` in place of the time. No time can be read, so the search excludes those runs.
+   A greedy "rolling start" appears to finish in 4.27 s but displays `EARLY`.
 3. **Model it.** [`dragster/model.py`](dragster/model.py) is a reduced model of player 0's physics.
    [`dragster/difftest.py`](dragster/difftest.py) checks it against the real ROM step by step
-   (running in py65 with stubbed hardware): zero mismatches.
-4. **Search exhaustively.** [`dragster/search.py`](dragster/search.py) is a layered BFS over (fire, clutch)
-   per step. Distance never feeds back into the dynamics, so for equal other state the larger distance
-   dominates; the pruning is exact and the first finishing layer is the true minimum, for all 16 start configurations.
-5. **Replay in an independent emulator.** [`mame/replay.py`](mame/replay.py) injects the optimal inputs
-   into MAME's Atari 2600 driver through a Lua script and reads the time the game itself computes.
+   (running in py65 with stubbed hardware) and finds zero mismatches.
+4. **Search every input.** [`dragster/search.py`](dragster/search.py) runs a layered BFS over (fire, clutch)
+   per step. Distance never feeds back into the dynamics, so a state with more distance dominates an
+   otherwise identical one. The pruning is exact, and the first layer with a finisher gives the true minimum
+   for all 16 start configurations.
+5. **Replay in a separate emulator.** [`mame/replay.py`](mame/replay.py) injects the optimal inputs
+   into MAME's Atari 2600 driver through a Lua script and reads the time the game computes.
 
 ## Reproduce
 
-You need your own dump of the ROM (it is copyrighted and **not included**). The dump used here has:
+You need your own dump of the ROM. It is copyrighted and **not included**. The dump used here has:
 
 ```
 size   2048 bytes
@@ -65,7 +65,7 @@ python -m dragster.search                      # all 16 start configurations
 python -m dragster.margin                      # distance margins per start phase
 ```
 
-MAME replay (needs `mame` with the `a2600` driver; `ffmpeg` only for video):
+MAME replay (needs `mame` with the `a2600` driver, and `ffmpeg` for video):
 
 ```sh
 python mame/replay.py --rom "$DRAGSTER_ROM"
@@ -73,35 +73,36 @@ python mame/replay.py --rom "$DRAGSTER_ROM" --snapshot media/final_screen_5.57.p
 python mame/replay.py --rom "$DRAGSTER_ROM" --video media/dragster_5.57_run.mp4
 ```
 
-It runs MAME headless (`SDL_VIDEODRIVER=dummy`), so no window opens.
+MAME runs headless (`SDL_VIDEODRIVER=dummy`), so no window opens.
 
 ## Limits of the claim
 
-- This shows 5.51 is impossible **in this ROM's modeled physics**, not why a 1982 score was recorded as 5.51.
-  A different ROM revision, or a mis-transcribed score, are outside what the code can say.
-- Inputs are assumed frame-perfect. Real play can only be slower.
-- The 1-player rules are modeled. Odd game numbers add a tilt mechanic that, by reading the code, only
-  slows the car; it is not modeled. Player 1's lane is argued symmetric, not tested.
-- The optimal move list is not unique. The search reports one of the optimal sequences.
-- Tested against one ROM dump and MAME 0.289. The BizHawk TAS result cited above is independent corroboration.
+- The search shows 5.51 is impossible in this ROM's modeled physics. It does not explain why a 1982 score
+  was recorded as 5.51. A different ROM revision or a mis-transcribed score would lie outside what the code can say.
+- The search assumes frame-perfect inputs. Real play cannot be faster.
+- The model covers the 1-player rules. Odd game numbers add a tilt mechanic that appears to slow the car,
+  and the model omits it. Player 1's lane is argued symmetric and untested.
+- Several move lists are optimal, and the search reports one.
+- The checks used one ROM dump and MAME 0.289. The BizHawk TAS cited above corroborates the result from a
+  separate emulator.
 
 ## Credits and prior work
 
 - **Omnigamer (Eric Koziel)** disassembled the game and published a tool-assisted run with a 5.57
-  in-game time ([TASVideos #5517](https://tasvideos.org/5517S)); the original solution is credited there to
-  Reddit user **Kragnir**. Their analysis is what Twin Galaxies relied on, following a dispute filed by
-  **Dick Moreland**. This project **independently reproduces the 5.57 floor from the same ROM**; it does not discover it.
+  in-game time ([TASVideos #5517](https://tasvideos.org/5517S)). That page credits the original solution to
+  Reddit user **Kragnir**. Twin Galaxies relied on this analysis after **Dick Moreland** filed a dispute.
+  This project reproduces the 5.57 floor from the same ROM with its own model and search.
 - **Ben Heck's** team tried to reproduce 5.51 on original hardware and could not.
 - *Dragster* is by **David Crane** (Activision, 1980).
 
 ## Provenance
 
-This project was built by a human directing **Claude Code** (Claude Sonnet 5.5, an AI assistant from
-Anthropic). The human set the question and reviewed the work; Claude did the reverse engineering, the model, the
+A human directed **Claude Code** (Claude Sonnet 5.5, an AI assistant from Anthropic) to build this project.
+The human set the question and reviewed the work. Claude did the reverse engineering, the model, the
 search and the scripts, and ran every check described above.
 
 ## Legal
 
-Not affiliated with or endorsed by Activision. No game code or disassembly is included; the ROM is
-identified by hash only. Code is MIT-licensed (see [LICENSE](LICENSE)). The video and screenshot show output
-from the game running in an emulator.
+This project has no affiliation with Activision and no endorsement from it. The repository contains no game code
+or disassembly and identifies the ROM by hash. The code uses the MIT license (see [LICENSE](LICENSE)).
+The video and screenshot show output from the game running in an emulator.

@@ -1,7 +1,7 @@
 # Findings: how Dragster's timing and physics work
 
-Everything here was read from the ROM's behavior (addresses are the game's zero-page RAM and `$F000`-mapped code).
-No ROM bytes or disassembly are reproduced.
+This document describes the ROM's behavior. Addresses are the game's zero-page RAM and `$F000`-mapped code.
+It reproduces no ROM bytes or disassembly.
 
 ## Frame structure
 
@@ -33,8 +33,8 @@ No ROM bytes or disassembly are reproduced.
 4. **Shifting.** Stick-left is `SWCHA` bit 6 for player 0. Pressing sets the clutch (bit 7 of `$CC`); *releasing* adds one
    gear (cap 4). Neutral is gear 0, the gear after Reset.
 
-The speed ramp is the real bottleneck: speed can rise at most 2 per step, and shifting up with RPM held high doubles the
-limit instantly. Optimal play keeps RPM just under the blow-up point while shifting on a ~2-step cadence.
+The speed ramp is the bottleneck. Speed rises by at most 2 per step, and shifting up with RPM held high doubles the
+limit. Optimal play keeps RPM under the blow-up point while shifting every two steps or so.
 
 ## Legality: BLOWN and EARLY
 
@@ -48,9 +48,9 @@ limit instantly. Optimal play keeps RPM just under the blow-up point while shift
 
 Nothing in the game logic clears `$D4`, so a run that shows either word never displays a time.
 
-Consequence: **the car cannot legally move before the clock starts.** Speed needs gear ≥ 1, a gear needs a stick release,
+Consequence: **a legal run cannot move the car before the clock starts.** Speed needs gear ≥ 1, a gear needs a stick release,
 and a release before the countdown ends sets EARLY. A greedy policy that rolls before the start "finishes" in 4.27 s but shows `EARLY`.
-The only legal pre-start actions are revving in neutral (`+3` per step, up to `$1E`) and holding the clutch.
+Legal pre-start actions are revving in neutral (`+3` per step, up to `$1E`) and holding the clutch.
 
 ## Start phase
 
@@ -79,12 +79,12 @@ Regenerate with `python -m dragster.margin`.
 ## Not modeled
 
 - Odd game numbers (`$80 & 1`) add a tilt mechanic (stick up/down, `$AB`/`$CA`) that, from reading the code, only halves RPM gain.
-- Player 1's lane: argued symmetric (same code, `$81` odd), not tested.
+- Player 1's lane: argued symmetric (same code, `$81` odd) and untested.
 - The cycle-exact display kernel. It does not affect game state.
 
 ## MAME pitfalls (if you adapt `mame/dr.lua`)
 
-- Keep tap handles in a **global**. As locals they are garbage-collected and the taps silently stop after a few hundred frames.
+- Keep tap handles in a **global**. As locals they are garbage-collected and the taps stop after a few hundred frames.
 - `-video soft` needs `-skip_gameinfo`, or MAME blocks on a startup screen waiting for a keypress.
 - Headless: `SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy`. A harmless `load_dat` plugin error prints at startup.
 - A memory tap's return value replaces the value the CPU reads. The game reads SWCHA after incrementing `$81`, so `$81` is
